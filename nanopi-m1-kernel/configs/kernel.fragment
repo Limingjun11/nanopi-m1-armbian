@@ -1,0 +1,52 @@
+# NanoPi M1 (Allwinner H3) kernel fragment, applied on top of sunxi_defconfig.
+#
+# Only options that sunxi_defconfig does not already enable are listed here;
+# they are verified after olddefconfig, so a typo or a missing dependency
+# fails the build instead of silently producing a kernel without the driver.
+#
+# Format: CONFIG_FOO=y | =m | =n   (one per line, '#' starts a comment)
+
+# --- GPU: Mali-400MP2 via lima + mesa -------------------------------------
+CONFIG_DRM_LIMA=m
+
+# --- Video decode: cedrus (H.264 on H3) ------------------------------------
+CONFIG_VIDEO_SUNXI_CEDRUS=m
+
+# --- DVP camera (CAM500B / OV5640) -----------------------------------------
+CONFIG_MEDIA_CAMERA_SUPPORT=y
+CONFIG_VIDEO_CAMERA_SENSOR=y
+CONFIG_VIDEO_SUN6I_CSI=m
+CONFIG_VIDEO_OV5640=m
+
+# --- Audio: analog codec (3.5mm + onboard mic) + S/PDIF --------------------
+CONFIG_SND_SUN8I_CODEC=y
+CONFIG_SND_SUN8I_CODEC_ANALOG=y
+CONFIG_SND_SUN4I_SPDIF=y
+
+# --- Thermal / cpufreq ------------------------------------------------------
+CONFIG_SUN8I_THERMAL=y
+CONFIG_CPUFREQ_DT=y
+
+# --- Memory: zram swap for the 512MB/1GB board ------------------------------
+CONFIG_ZRAM=m
+
+# --- Containers: docker/podman friendly ------------------------------------
+CONFIG_OVERLAY_FS=y
+CONFIG_BRIDGE=y
+CONFIG_VETH=m
+CONFIG_NETFILTER=y
+CONFIG_NETFILTER_XTABLES_LEGACY=y
+CONFIG_NF_CONNTRACK=m
+CONFIG_IP_NF_IPTABLES_LEGACY=m
+CONFIG_NF_NAT=m
+CONFIG_IP_NF_IPTABLES=m
+CONFIG_IP_NF_NAT=m
+
+# --- Wireless / USB Ethernet (the M1 has no onboard WiFi) ------------------
+CONFIG_WIRELESS=y
+CONFIG_WLAN=y
+CONFIG_CFG80211=m
+CONFIG_MAC80211=m
+CONFIG_USB_RTL8152=m
+CONFIG_RTL8XXXU=m
+CONFIG_MT7601U=m

@@ -1,0 +1,11 @@
+# build products
+.cache/
+nanopi-m1-kernel/out/
+nanopi-m1-image/out/
+
+# editor / OS noise
+*.swp
+.DS_Store
+
+# build logs
+*.log

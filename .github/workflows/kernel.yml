@@ -1,0 +1,79 @@
+name: kernel
+
+# Build the mainline LTS kernel for the NanoPi M1 only.
+# The full bootable image is built by image.yml.
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'nanopi-m1-kernel/**'
+      - '.github/workflows/kernel.yml'
+  pull_request:
+    paths:
+      - 'nanopi-m1-kernel/**'
+      - '.github/workflows/kernel.yml'
+  workflow_dispatch:
+    inputs:
+      kernel_version:
+        description: 'Linux version to build (e.g. 6.18.64, 5.15.225)'
+        required: false
+        default: '6.18.64'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kernel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: linux ${{ inputs.kernel_version || '6.18.64' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    env:
+      KERNEL_VERSION: ${{ inputs.kernel_version || '6.18.64' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential bison flex bc libssl-dev patch xz-utils \
+            gcc-arm-linux-gnueabihf
+
+      - name: Restore download cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/dl
+          key: kernel-dl-${{ env.KERNEL_VERSION }}-${{ hashFiles('nanopi-m1-kernel/scripts/build.sh') }}
+          restore-keys: |
+            kernel-dl-${{ env.KERNEL_VERSION }}-
+            kernel-dl-
+
+      - name: Build kernel
+        run: make -C nanopi-m1-kernel -j"$(nproc)"
+
+      - name: Show artifacts
+        run: |
+          ls -lh nanopi-m1-kernel/out/
+          cat nanopi-m1-kernel/out/kernel-release
+
+      - name: Upload kernel
+        uses: actions/upload-artifact@v4
+        with:
+          name: nanopi-m1-kernel-${{ env.KERNEL_VERSION }}
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            nanopi-m1-kernel/out/zImage
+            nanopi-m1-kernel/out/dtb/sun8i-h3-nanopi-m1.dtb
+            nanopi-m1-kernel/out/nanopi-m1-kernel-*.tar.gz
+            nanopi-m1-kernel/out/config-*
+            nanopi-m1-kernel/out/System.map-*
+            nanopi-m1-kernel/out/kernel-release

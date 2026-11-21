@@ -1,0 +1,17 @@
+--- a/arch/arm/boot/dts/allwinner/sun8i-h3-nanopi-m1.dts
++++ b/arch/arm/boot/dts/allwinner/sun8i-h3-nanopi-m1.dts
+@@ -104,3 +104,14 @@
+ &ohci2 {
+ 	status = "okay";
+ };
++
++/* NanoPi M1: the 3.5mm jack and the onboard microphone are wired to the
++ * H3 analog codec, but the mainline board dts never enables it.
++ */
++&codec {
++	allwinner,audio-routing =
++		"Line Out", "LINEOUT",
++		"MIC1", "Mic",
++		"Mic",  "MBIAS";
++	status = "okay";
++};

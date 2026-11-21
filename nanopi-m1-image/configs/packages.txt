@@ -1,0 +1,18 @@
+# NanoPi M1 rootfs package list (Debian, armhf)
+systemd-sysv
+systemd-resolved
+openssh-server
+sudo
+iproute2
+iputils-ping
+netbase
+ca-certificates
+curl
+less
+nano
+htop
+wpasupplicant
+iw
+e2fsprogs
+dosfstools
+zram-tools

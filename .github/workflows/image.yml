@@ -1,0 +1,114 @@
+name: image
+
+# Build the complete bootable SD card image:
+#   U-Boot 2026.07 + Linux 6.18.64 LTS + BusyBox rootfs
+# and smoke-test it in QEMU (same Allwinner H3 SoC) before uploading.
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      kernel_version:
+        description: 'Linux version (e.g. 6.18.64, 5.15.225)'
+        required: false
+        default: '6.18.64'
+      img_size:
+        description: 'Raw image size (512M, 1G, 2G...)'
+        required: false
+        default: '512M'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    name: build + qemu test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    env:
+      KERNEL_VERSION: ${{ inputs.kernel_version || '6.18.64' }}
+      IMG_SIZE: ${{ inputs.img_size || '512M' }}
+      UBOOT_VERSION: '2026.07'
+      # GitHub runners reach github.com directly; the script would otherwise
+      # try a China-friendly proxy first.
+      UBOOT_URL: https://github.com/u-boot/u-boot/archive/refs/tags/v2026.07.tar.gz
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential bison flex bc libssl-dev swig python3-dev patch \
+            gcc-arm-linux-gnueabihf e2fsprogs util-linux xz-utils \
+            qemu-system-arm
+
+      - name: Restore download cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/dl
+          key: image-dl-${{ env.KERNEL_VERSION }}-uboot${{ env.UBOOT_VERSION }}-${{ hashFiles('nanopi-m1-kernel/scripts/build.sh', 'nanopi-m1-image/scripts/*.sh') }}
+          restore-keys: |
+            image-dl-${{ env.KERNEL_VERSION }}-uboot${{ env.UBOOT_VERSION }}-
+            image-dl-
+
+      - name: Build image
+        run: make -C nanopi-m1-image -j"$(nproc)"
+
+      - name: Verify image layout
+        run: ./nanopi-m1-image/scripts/inspect.sh nanopi-m1-image/out/nanopi-m1-*.img
+
+      - name: Boot test in QEMU
+        run: make -C nanopi-m1-image test
+
+      - name: Upload image
+        uses: actions/upload-artifact@v4
+        with:
+          name: nanopi-m1-image-${{ env.KERNEL_VERSION }}
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            nanopi-m1-image/out/*.img.xz
+            nanopi-m1-image/out/u-boot-sunxi-with-spl.bin
+            nanopi-m1-image/out/manifest.txt
+            nanopi-m1-kernel/out/nanopi-m1-kernel-*.tar.gz
+
+  release:
+    name: attach to release
+    needs: image
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: nanopi-m1-image-${{ inputs.kernel_version || '6.18.64' }}
+          path: artifacts
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          body: |
+            NanoPi M1 (Allwinner H3) mainline image
+
+            * U-Boot 2026.07
+            * Linux ${{ inputs.kernel_version || '6.18.64' }} (LTS)
+            * BusyBox rootfs, DHCP on eth0, serial console `ttyS0 115200`
+            * default credentials: `root` / `nanopi`
+
+            Flash with:
+
+            ```
+            xz -dc nanopi-m1-*.img.xz | sudo dd of=/dev/sdX bs=4M status=progress conv=fsync
+            ```
