@@ -61,7 +61,7 @@ fi
 
 # ---------------------------------------------------------------- config ----
 log "configuring (sunxi_defconfig + kernel.fragment)"
-make -C "$SRC" ARCH=arm CROSS_COMPILE="$CROSS_COMPILE" sunxi_defconfig >/dev/null
+make --no-print-directory -C "$SRC" ARCH=arm CROSS_COMPILE="$CROSS_COMPILE" sunxi_defconfig >/dev/null
 
 apply_fragment() {
 	local line sym val
@@ -80,7 +80,7 @@ apply_fragment() {
 	done <"$FRAGMENT"
 }
 apply_fragment
-make -C "$SRC" ARCH=arm CROSS_COMPILE="$CROSS_COMPILE" olddefconfig >/dev/null
+make --no-print-directory -C "$SRC" ARCH=arm CROSS_COMPILE="$CROSS_COMPILE" olddefconfig >/dev/null
 
 verify_fragment() {
 	local line sym want got bad=0
@@ -102,15 +102,15 @@ verify_fragment
 
 # ----------------------------------------------------------------- build ----
 log "building zImage + modules + dtbs (jobs=$JOBS)"
-make -C "$SRC" ARCH=arm CROSS_COMPILE="$CROSS_COMPILE" -j"$JOBS" zImage modules dtbs
+make --no-print-directory -C "$SRC" ARCH=arm CROSS_COMPILE="$CROSS_COMPILE" -j"$JOBS" zImage modules dtbs
 
-KREL=$(make -s -C "$SRC" ARCH=arm kernelrelease)
+KREL=$(cat "$SRC/include/config/kernel.release")
 log "kernel release: $KREL"
 
 # --------------------------------------------------------------- package ----
 log "installing modules into out/"
 rm -rf "$OUT/modules"
-make -C "$SRC" ARCH=arm CROSS_COMPILE="$CROSS_COMPILE" \
+make --no-print-directory -C "$SRC" ARCH=arm CROSS_COMPILE="$CROSS_COMPILE" \
 	INSTALL_MOD_PATH="$OUT/modules" INSTALL_MOD_STRIP=1 modules_install >/dev/null
 
 mkdir -p "$OUT/dtb"

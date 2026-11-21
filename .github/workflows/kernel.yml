@@ -4,11 +4,8 @@ name: kernel
 # The full bootable image is built by image.yml.
 
 on:
-  push:
-    branches: [main, master]
-    paths:
-      - 'nanopi-m1-kernel/**'
-      - '.github/workflows/kernel.yml'
+  # No push trigger: on main, image.yml already builds the kernel as part of
+  # the image. Use this workflow for kernel-only builds and PR validation.
   pull_request:
     paths:
       - 'nanopi-m1-kernel/**'
