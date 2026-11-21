@@ -32,6 +32,10 @@ Artifacts 里保留 30 天；镜像和内核 tar.gz 一起产出。cron 用的�
 * GitHub 对 **60 天无提交** 的仓库会自动暂停定时任务，有新的 push 后恢复；
 * 定时任务只在默认分支上跑，且高峰期可能延迟几分钟到几十分钟。
 
+每次定时构建会发布一个 **prerelease**，tag 形如 `weekly-20261123`，附带
+`.img.xz`、U-Boot、内核 tar.gz 和 manifest；只保留最近 8 个 weekly 发布，旧的自动删除。
+手动 Run workflow 也会走同样的 weekly 发布流程（方便先验证）。
+
 本地推到 GitHub：
 
 ```bash
