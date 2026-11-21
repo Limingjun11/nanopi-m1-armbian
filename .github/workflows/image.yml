@@ -5,6 +5,9 @@ name: image
 # and smoke-test it in QEMU (same Allwinner H3 SoC) before uploading.
 
 on:
+  # Every Monday 02:00 Asia/Shanghai (Sunday 18:00 UTC)
+  schedule:
+    - cron: '0 18 * * 0'
   push:
     branches: [main, master]
     paths:

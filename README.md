@@ -16,10 +16,21 @@
 | 工作流 | 触发 | 做什么 | 产物 |
 | --- | --- | --- | --- |
 | `kernel.yml` | 改 `nanopi-m1-kernel/**`、手动 | 只编内核（可输入版本号） | 内核 tar.gz、zImage、dtb |
-| `image.yml` | push/PR、打 `v*` tag、手动 | 编 U-Boot + 内核 + rootfs + 镜像，并在 QEMU 里启动验证 | `.img.xz`、U-Boot、manifest；打 tag 时自动发 Release |
+| `image.yml` | push/PR、**每周一 02:00**、打 `v*` tag、手动 | 编 U-Boot + 内核 + rootfs + 镜像，并在 QEMU 里启动验证 | `.img.xz`、U-Boot、manifest；打 tag 时自动发 Release |
 
 手动运行时可指定 `kernel_version`（如 `5.15.225`）和 `img_size`（`512M`/`1G`/`2G`）。
 下载缓存通过 `actions/cache` 复用，重复构建只需重编内核。
+
+### 定时构建
+
+`image.yml` 每周一 02:00（北京时间）自动跑一次，产物在 Actions 该次 run 的
+Artifacts 里保留 30 天；镜像和内核 tar.gz 一起产出。cron 用的是 UTC
+（`0 18 * * 0` = 周日 18:00 UTC = 周一 02:00 CST），改时间就改这一行。
+
+注意两点：
+
+* GitHub 对 **60 天无提交** 的仓库会自动暂停定时任务，有新的 push 后恢复；
+* 定时任务只在默认分支上跑，且高峰期可能延迟几分钟到几十分钟。
 
 本地推到 GitHub：
 
