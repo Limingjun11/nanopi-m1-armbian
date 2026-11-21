@@ -43,6 +43,9 @@ log "building BusyBox $BB_VERSION (static)"
 make -C "$SRC" ARCH=arm CROSS_COMPILE="$CROSS_COMPILE" defconfig >/dev/null
 sed -i 's/^# CONFIG_STATIC is not set/CONFIG_STATIC=y/' "$SRC/.config"
 grep -q '^CONFIG_STATIC=y' "$SRC/.config" || echo 'CONFIG_STATIC=y' >>"$SRC/.config"
+# BusyBox 1.36's tc applet does not build against Linux >= 6.8 UAPI headers
+# (the CBQ qdisc was removed from the kernel). We do not need traffic control.
+sed -i 's/^CONFIG_TC=y/# CONFIG_TC is not set/' "$SRC/.config"
 make -C "$SRC" ARCH=arm CROSS_COMPILE="$CROSS_COMPILE" oldconfig </dev/null >/dev/null
 make -C "$SRC" ARCH=arm CROSS_COMPILE="$CROSS_COMPILE" -j"$JOBS" >/dev/null
 
