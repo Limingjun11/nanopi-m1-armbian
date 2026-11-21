@@ -64,10 +64,18 @@ sudo make DISTRO=debian image
 本地需要 root + `qemu-user` 的 armhf binfmt（`update-binfmts --enable qemu-arm`）；
 GitHub runner 上 `image-distro.yml` 已经处理好了。
 
-**`armbian` —— 没有加**
-Armbian 的构建框架里 `nanopim1` 已标记为 `eos`（end of support），无法再用官方框架
-重建；归档里只有 4.x/5.x 时代的老镜像。Armbian 本质是 Debian/Ubuntu + 板级脚本，
-所以 `debian`/`ubuntu` 两个变体就是它最接近的替代。
+**`armbian`（归档用户态 + 我们的内核）**
+Armbian 的构建框架里 `nanopim1` 已是 `eos`，无法重建；但归档里还留着最后一个官方镜像
+`21.08.1`（Debian bullseye，kernel 5.10.60）。这个变体把它的 rootfs 解出来，
+保留 armbian-config / armbian-firstrun 等，再换成我们的 6.18 内核、模块、dtb 和
+U-Boot，启动方式改为 extlinux。
+
+```bash
+make rootfs-armbian          # 下载 348MB 镜像并解包（不需要 root）
+make DISTRO=armbian image
+```
+
+首次启动向导（armbian-firstrun）会被禁用，root 密码固定为 `nanopi`，eth0 走 DHCP。
 
 ## 镜像布局
 

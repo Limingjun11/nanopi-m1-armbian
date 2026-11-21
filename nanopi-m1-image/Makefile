@@ -52,6 +52,10 @@ rootfs-debian:
 rootfs-ubuntu:
 	@sudo -E env "PATH=$$PATH" DISTRO=ubuntu $(PROJECT_DIR)/scripts/rootfs-distro.sh
 
+# Archived Armbian rootfs + our kernel (no root needed to extract)
+rootfs-armbian:
+	@$(PROJECT_DIR)/scripts/rootfs-armbian.sh
+
 image:
 	@$(PROJECT_DIR)/scripts/image.sh
 
