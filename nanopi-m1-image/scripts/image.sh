@@ -18,7 +18,12 @@ set -euo pipefail
 [ -x "$ROOTFS/bin/sh" ] || [ -x "$ROOTFS/usr/bin/bash" ] || die "缺少 rootfs，先 make rootfs"
 
 KREL=$(cat "$KERNEL_OUT/kernel-release" 2>/dev/null || echo unknown)
-IMG=$OUT/nanopi-m1-$KREL.img
+DISTRO=${DISTRO:-busybox}
+if [ "$DISTRO" = busybox ]; then
+	IMG=$OUT/nanopi-m1-$KREL.img
+else
+	IMG=$OUT/nanopi-m1-$KREL-$DISTRO.img
+fi
 OFFSET=$((4 * 1024 * 1024)) # 4MiB
 START_SEC=$((OFFSET / 512))
 
@@ -31,6 +36,9 @@ rm -f "$PART"
 truncate -s "$PART_BYTES" "$PART"
 mke2fs -q -F -t ext4 -L rootfs -d "$ROOTFS" "$PART"
 
+if [ "$(stat -c %u "$ROOTFS")" = 0 ]; then
+	log "rootfs already owned by root, skipping ownership fix"
+else
 log "normalising ownership to root"
 CMDS=$WORK/debugfs.cmds
 (
@@ -41,6 +49,7 @@ CMDS=$WORK/debugfs.cmds
 done >"$CMDS"
 debugfs -w -f "$CMDS" "$PART" >/dev/null 2>&1 || warn "debugfs 调整属主时有告警"
 rm -f "$CMDS"
+fi
 
 log "creating $IMG ($IMG_SIZE)"
 rm -f "$IMG"
@@ -64,7 +73,7 @@ xz -T0 -6 -c "$IMG" >"$IMG.xz"
 
 {
 	echo "kernel:      $KREL"
-	echo "rootfs:      ${ROOTFS_KIND:-busybox}"
+	echo "rootfs:      $DISTRO"
 	echo "image:       $(basename "$IMG")"
 	echo "image size:  $(stat -c%s "$IMG") bytes"
 	echo "compressed:  $(stat -c%s "$IMG.xz") bytes"

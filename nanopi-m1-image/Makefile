@@ -24,7 +24,7 @@ CACHE := $(NANOPI_M1_CACHE)
 OUT   := $(PROJECT_DIR)/out
 
 export PROJECT_DIR KERNEL_VERSION UBOOT_VERSION SUITE MIRROR IMG_SIZE \
-       ROOT_PASSWORD JOBS CACHE OUT
+       ROOT_PASSWORD JOBS CACHE OUT DISTRO
 
 all: kernel uboot rootfs image
 
@@ -38,14 +38,19 @@ uboot:
 	@$(PROJECT_DIR)/scripts/uboot.sh
 
 ROOTFS_KIND ?= busybox
+DISTRO ?= $(ROOTFS_KIND)
 
 rootfs: rootfs-$(ROOTFS_KIND)
 
 rootfs-busybox:
 	@$(PROJECT_DIR)/scripts/rootfs-busybox.sh
 
+# Debian/Ubuntu need root (mmdebstrap chroots into an armhf tree)
 rootfs-debian:
-	@$(PROJECT_DIR)/scripts/rootfs-debian.sh
+	@sudo -E env "PATH=$$PATH" DISTRO=debian $(PROJECT_DIR)/scripts/rootfs-distro.sh
+
+rootfs-ubuntu:
+	@sudo -E env "PATH=$$PATH" DISTRO=ubuntu $(PROJECT_DIR)/scripts/rootfs-distro.sh
 
 image:
 	@$(PROJECT_DIR)/scripts/image.sh

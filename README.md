@@ -16,7 +16,8 @@
 | 工作流 | 触发 | 做什么 | 产物 |
 | --- | --- | --- | --- |
 | `kernel.yml` | 改 `nanopi-m1-kernel/**`、手动 | 只编内核（可输入版本号） | 内核 tar.gz、zImage、dtb |
-| `image.yml` | push/PR、**每周一 02:00**、打 `v*` tag、手动 | 编 U-Boot + 内核 + rootfs + 镜像，并在 QEMU 里启动验证 | `.img.xz`、U-Boot、manifest；打 tag 时自动发 Release |
+| `image.yml` | push/PR、**每周一 02:00**、打 `v*` tag、手动 | BusyBox 版镜像（U-Boot + 内核 + rootfs），QEMU 验证 | `.img.xz`、U-Boot、manifest；定时/手动发 `weekly-*` prerelease |
+| `image-distro.yml` | **每周一 02:30**、手动 | Debian trixie + Ubuntu noble 两套完整系统镜像（matrix 并行） | 各自 `.img.xz`（约 2G 未压缩）+ `weekly-<distro>-*` prerelease |
 
 手动运行时可指定 `kernel_version`（如 `5.15.225`）和 `img_size`（`512M`/`1G`/`2G`）。
 下载缓存通过 `actions/cache` 复用，重复构建只需重编内核。
@@ -77,6 +78,12 @@ ls /boot                      -> extlinux  sun8i-h3-nanopi-m1.dtb  zImage
 eth0                          -> 10.0.2.15/24 (DHCP)
 ALSA                          -> #0: H3 Audio Codec   (dts 补丁生效)
 ```
+
+## 关于 Armbian
+
+Armbian 的构建框架里 `nanopim1` 已是 `eos`（停止支持），无法用官方框架重建，
+归档里只有 3.4/4.x 时代的老镜像。Armbian 本身就是 Debian/Ubuntu 加板级脚本，
+所以这里用 `debian` / `ubuntu` 两个变体覆盖同样的需求。
 
 ## 设计要点
 

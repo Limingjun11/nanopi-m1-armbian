@@ -1,0 +1,153 @@
+name: image-distro
+
+# Full Debian / Ubuntu images (systemd + sshd) instead of the BusyBox one.
+# Needs root for mmdebstrap + armhf binfmt; both are available on the runner.
+
+on:
+  # Every Monday 02:30 Asia/Shanghai (Sunday 18:30 UTC)
+  schedule:
+    - cron: '30 18 * * 0'
+  workflow_dispatch:
+    inputs:
+      kernel_version:
+        description: 'Linux version (e.g. 6.18.64)'
+        required: false
+        default: '6.18.64'
+      img_size:
+        description: 'Raw image size (1G, 2G, 4G...)'
+        required: false
+        default: '2G'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: image-distro-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    name: ${{ matrix.distro }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [debian, ubuntu]
+
+    env:
+      KERNEL_VERSION: ${{ inputs.kernel_version || '6.18.64' }}
+      IMG_SIZE: ${{ inputs.img_size || '2G' }}
+      DISTRO: ${{ matrix.distro }}
+      UBOOT_VERSION: '2026.07'
+      UBOOT_URL: https://github.com/u-boot/u-boot/archive/refs/tags/v2026.07.tar.gz
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential bison flex bc libssl-dev swig python3-dev patch \
+            gcc-arm-linux-gnueabihf libc6-dev-armhf-cross \
+            e2fsprogs util-linux xz-utils qemu-system-arm \
+            qemu-user-static binfmt-support mmdebstrap
+
+      - name: Enable armhf binfmt
+        run: |
+          ls /proc/sys/fs/binfmt_misc/ || true
+          if [ ! -e /proc/sys/fs/binfmt_misc/qemu-arm ]; then
+            sudo update-binfmts --enable qemu-arm || true
+          fi
+          test -e /proc/sys/fs/binfmt_misc/qemu-arm
+
+      - name: Restore download cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/dl
+          key: distro-dl-${{ matrix.distro }}-${{ env.KERNEL_VERSION }}-${{ hashFiles('nanopi-m1-kernel/scripts/build.sh', 'nanopi-m1-image/scripts/*.sh') }}
+          restore-keys: |
+            distro-dl-${{ matrix.distro }}-${{ env.KERNEL_VERSION }}-
+            distro-dl-
+
+      - name: Build kernel and U-Boot
+        run: make -C nanopi-m1-image kernel uboot
+
+      - name: Build rootfs (root)
+        run: |
+          sudo env "PATH=$PATH" \
+            DISTRO=${{ matrix.distro }} \
+            ROOT_PASSWORD=nanopi \
+            ./nanopi-m1-image/scripts/rootfs-distro.sh
+
+      - name: Assemble image (root, keeps root-owned inodes)
+        run: sudo env "PATH=$PATH" DISTRO=${{ matrix.distro }} make -C nanopi-m1-image image
+
+      - name: Hand output back to runner
+        run: sudo chown -R "$(id -u):$(id -g)" nanopi-m1-image/out
+
+      - name: Verify image layout
+        run: ./nanopi-m1-image/scripts/inspect.sh nanopi-m1-image/out/nanopi-m1-*-${{ matrix.distro }}.img
+
+      - name: Boot test in QEMU
+        run: make -C nanopi-m1-image test
+
+      - name: Upload image
+        uses: actions/upload-artifact@v4
+        with:
+          name: nanopi-m1-${{ matrix.distro }}-image
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            nanopi-m1-image/out/nanopi-m1-*-${{ matrix.distro }}.img.xz
+            nanopi-m1-image/out/u-boot-sunxi-with-spl.bin
+            nanopi-m1-image/out/manifest.txt
+
+      - name: Compute release tag
+        id: meta
+        run: |
+          echo "tag=weekly-${{ matrix.distro }}-$(date -u +%Y%m%d)" >> "$GITHUB_OUTPUT"
+          echo "name=NanoPi M1 ${{ matrix.distro }} weekly build $(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Remove release with the same tag (re-runs)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release delete "${{ steps.meta.outputs.tag }}" --yes --cleanup-tag || true
+
+      - name: Publish weekly release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.name }}
+          prerelease: true
+          files: |
+            nanopi-m1-image/out/nanopi-m1-*-${{ matrix.distro }}.img.xz
+            nanopi-m1-image/out/manifest.txt
+          body: |
+            NanoPi M1 (Allwinner H3) - ${{ matrix.distro }} image
+
+            * U-Boot 2026.07
+            * Linux ${{ env.KERNEL_VERSION }} (LTS)
+            * ${{ matrix.distro }} armhf rootfs, systemd + sshd + DHCP on eth0
+            * default credentials: `root` / `nanopi`
+            * serial console: `ttyS0 115200 8N1`
+
+            Flash with:
+
+            ```
+            xz -dc nanopi-m1-*.img.xz | sudo dd of=/dev/sdX bs=4M status=progress conv=fsync
+            ```
+
+      - name: Prune old weekly releases (keep 4)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release list --limit 100 --json tagName \
+            --jq '.[] | select(.tagName | startswith("weekly-${{ matrix.distro }}-")) | .tagName' \
+            | tail -n +5 \
+            | while read -r t; do
+                echo "deleting $t"
+                gh release delete "$t" --yes --cleanup-tag || true
+              done

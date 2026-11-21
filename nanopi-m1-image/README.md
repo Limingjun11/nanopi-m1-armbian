@@ -44,16 +44,30 @@ make clean            # 删 out/
 | `BB_VERSION` | `1.36.1` | BusyBox 版本 |
 | `MIRROR` | aliyun | 仅 Debian rootfs 用 |
 
-## 两种 rootfs
+## 三种 rootfs
 
 **`busybox`（默认，推荐）**
 用同一套交叉工具链从源码编译静态 BusyBox，组装最小系统：init、getty（ttyS0/tty1）、
 udhcpc 自动 DHCP、内核模块、extlinux 启动项。整个流程不需要 root，
 也不需要包管理器，产物约 1.5MB 用户态。
 
-**`debian`（可选）**
-`mmdebstrap` 拉 Debian armhf（systemd + sshd）。这一步需要**本机有 root 或多 uid 映射**
-（普通用户直接跑会因为无法 chown 到系统用户而失败；用 `sudo make rootfs-debian`）。
+**`debian` / `ubuntu`（可选，需要 root）**
+`mmdebstrap` 拉 Debian trixie 或 Ubuntu noble 的 armhf 最小系统（systemd、sshd、
+systemd-networkd），装进 `/boot`、`/lib/modules` 和上面的启动配置。
+
+```bash
+sudo make rootfs-debian      # Debian trixie, 镜像约 2G / 压缩后 ~300MB
+sudo make rootfs-ubuntu      # Ubuntu noble, 同上
+sudo make DISTRO=debian image
+```
+
+本地需要 root + `qemu-user` 的 armhf binfmt（`update-binfmts --enable qemu-arm`）；
+GitHub runner 上 `image-distro.yml` 已经处理好了。
+
+**`armbian` —— 没有加**
+Armbian 的构建框架里 `nanopim1` 已标记为 `eos`（end of support），无法再用官方框架
+重建；归档里只有 4.x/5.x 时代的老镜像。Armbian 本质是 Debian/Ubuntu + 板级脚本，
+所以 `debian`/`ubuntu` 两个变体就是它最接近的替代。
 
 ## 镜像布局
 
