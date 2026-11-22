@@ -74,7 +74,7 @@ jobs:
         run: sudo chown -R 0:0 .cache/work-image/rootfs
 
       - name: Assemble image (root)
-        run: sudo env "PATH=$PATH" DISTRO=armbian make -C nanopi-m1-image image
+        run: sudo env "PATH=$PATH" DISTRO=armbian IMG_SIZE="${{ env.IMG_SIZE }}" make -C nanopi-m1-image image
 
       - name: Hand output back to runner
         run: sudo chown -R "$(id -u):$(id -g)" nanopi-m1-image/out

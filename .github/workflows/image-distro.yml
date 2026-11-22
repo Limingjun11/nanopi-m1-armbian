@@ -83,7 +83,7 @@ jobs:
             ./nanopi-m1-image/scripts/rootfs-distro.sh
 
       - name: Assemble image (root, keeps root-owned inodes)
-        run: sudo env "PATH=$PATH" DISTRO=${{ matrix.distro }} make -C nanopi-m1-image image
+        run: sudo env "PATH=$PATH" DISTRO=${{ matrix.distro }} IMG_SIZE="${{ env.IMG_SIZE }}" make -C nanopi-m1-image image
 
       - name: Hand output back to runner
         run: sudo chown -R "$(id -u):$(id -g)" nanopi-m1-image/out

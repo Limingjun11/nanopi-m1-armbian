@@ -31,6 +31,11 @@ IMG_BYTES=$(numfmt --from=iec "$IMG_SIZE")
 PART_BYTES=$((IMG_BYTES - OFFSET))
 PART=$WORK/part.img
 
+ROOTFS_MB=$(du -sm "$ROOTFS" | cut -f1)
+PART_MB=$((PART_BYTES / 1024 / 1024))
+[ "$PART_MB" -gt $((ROOTFS_MB + 32)) ] ||
+	die "IMG_SIZE=$IMG_SIZE 太小：rootfs 约 ${ROOTFS_MB}MiB，分区只有 ${PART_MB}MiB"
+
 log "building ext4 filesystem ($((PART_BYTES / 1024 / 1024)) MiB) from $ROOTFS"
 rm -f "$PART"
 truncate -s "$PART_BYTES" "$PART"
