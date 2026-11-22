@@ -89,11 +89,29 @@ cat >"$ROOTFS/etc/hosts" <<'EOF'
 EOF
 ln -sfn /run/systemd/resolve/stub-resolv.conf "$ROOTFS/etc/resolv.conf" 2>/dev/null || true
 
-# Armbian first-boot wizard expects its own boot environment; disable it so the
-# board comes up straight to a login prompt.
-rm -f "$ROOTFS/etc/systemd/system/multi-user.target.wants/armbian-firstrun.service" \
-      "$ROOTFS/etc/systemd/system/armbian-firstrun.service"
-ln -sfn /dev/null "$ROOTFS/etc/systemd/system/armbian-firstrun.service" 2>/dev/null || true
+# Armbian first-boot wizard and the ramlog/zram helpers expect Armbian's own
+# boot environment (armbianEnv.txt, /var/log.hdd); they either fail or stall
+# for 15-90s here, so mask them and boot straight to a login prompt.
+install -d "$ROOTFS/etc/systemd/system"
+for unit in \
+	armbian-firstrun.service \
+	armbian-ramlog.service \
+	armbian-zram-config.service \
+	armbian-hardware-optimization.service \
+	armbian-hardware-monitor.service \
+	armbian-resize-filesystem.service \
+	systemd-networkd-wait-online.service \
+	ifupdown-wait-online.service \
+	NetworkManager-wait-online.service; do
+	ln -sfn /dev/null "$ROOTFS/etc/systemd/system/$unit"
+done
+
+# make sure the serial console getty comes up on ttyS0
+if [ -e "$ROOTFS/lib/systemd/system/serial-getty@.service" ]; then
+	install -d "$ROOTFS/etc/systemd/system/getty.target.wants"
+	ln -sfn /lib/systemd/system/serial-getty@.service \
+		"$ROOTFS/etc/systemd/system/getty.target.wants/serial-getty@ttyS0.service"
+fi
 
 # keep eth0 on DHCP even if NetworkManager is present
 cat >"$ROOTFS/etc/systemd/network/20-wired.network" <<'EOF'

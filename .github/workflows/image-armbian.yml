@@ -40,6 +40,8 @@ jobs:
       KERNEL_VERSION: ${{ inputs.kernel_version || '6.18.64' }}
       IMG_SIZE: ${{ inputs.img_size || '4G' }}
       DISTRO: armbian
+      # Armbian's systemd userland is slow under TCG emulation
+      BOOT_TIMEOUT: '300'
       UBOOT_VERSION: '2026.07'
       UBOOT_URL: https://github.com/u-boot/u-boot/archive/refs/tags/v2026.07.tar.gz
 

@@ -58,6 +58,8 @@ def main():
                     return
                 buf += data
 
+    BOOT_TIMEOUT = int(os.environ.get("BOOT_TIMEOUT", "90"))
+
     def read_until(pattern, timeout=60):
         nonlocal buf
         end = time.time() + timeout
@@ -77,7 +79,7 @@ def main():
         return False
 
     try:
-        if not read_until(r"login:", 90):
+        if not read_until(r"login:", BOOT_TIMEOUT):
             print("FAIL: no login prompt")
             print(buf.decode(errors="replace")[-3000:])
             return 1
