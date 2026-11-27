@@ -1,30 +1,27 @@
-// OV2640 DVP camera on the H3 CSI + i2c2 (template: verify the wiring)
+// OV2640 on the onboard DVP-CAM connector (CSI + i2c2 + MCLK on PE1)
+//
+// Wiring assumed (NanoPi M1 DVP camera connector):
+//   PE0  PCLK      PE2  HSYNC     PE3  VSYNC
+//   PE4..PE11  D0..D7
+//   PE12 SCL / PE13 SDA        (i2c2, SCCB)
+//   PE1  MCLK (24 MHz from CLK_CSI_MCLK)
+//
+// Build:  dtc -@ -I dts -O dtb -o ov2640.dtbo ov2640.dts
+// Apply:  add "fdtoverlays /boot/overlays/ov2640.dtbo" to extlinux.conf
+
 /dts-v1/;
 /plugin/;
 
 / {
 	compatible = "allwinner,sun8i-h3";
 
+	/* MCLK: PE1 is not in the mainline csi_pins group, add it here */
 	fragment@0 {
-		target = <&i2c2>;
+		target = <&pio>;
 		__overlay__ {
-			status = "okay";
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			ov2640: camera@30 {
-				compatible = "ovti,ov2640";
-				reg = <0x30>;
-
-				port {
-					ov2640_ep: endpoint {
-						remote-endpoint = <&csi_ep>;
-						bus-width = <8>;
-						hsync-active = <1>;
-						vsync-active = <1>;
-						pclk-sample = <0>;
-					};
-				};
+			csi_mclk_pin: csi-mclk-pin {
+				pins = "PE1";
+				function = "csi";
 			};
 		};
 	};
@@ -38,9 +35,39 @@
 				csi_ep: endpoint {
 					remote-endpoint = <&ov2640_ep>;
 					bus-width = <8>;
-					hsync-active = <1>;
-					vsync-active = <1>;
-					pclk-sample = <0>;
+				};
+			};
+		};
+	};
+
+	fragment@2 {
+		target = <&i2c2>;
+		__overlay__ {
+			status = "okay";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			ov2640: camera@30 {
+				compatible = "ovti,ov2640";
+				reg = <0x30>;
+
+				pinctrl-names = "default";
+				pinctrl-0 = <&csi_mclk_pin>;
+
+				/* CLK_CSI_MCLK == 107 in sun8i-h3-ccu.h */
+				clocks = <&ccu 107>;
+				clock-names = "xvclk";
+				assigned-clocks = <&ccu 107>;
+				assigned-clock-rates = <24000000>;
+
+				port {
+					ov2640_ep: endpoint {
+						remote-endpoint = <&csi_ep>;
+						bus-width = <8>;
+						hsync-active = <1>;
+						vsync-active = <1>;
+						pclk-sample = <1>;
+					};
 				};
 			};
 		};

@@ -33,9 +33,12 @@ dmesg | grep -iE "fbtft|st7735|ov2640|csi"
 ls /dev/fb* /dev/video*
 ```
 
-## 需要你确认的接线
+## 当前约定
 
-- **ST7735**：接的是 SPI0（PC0–PC3）还是 SPI1（PA13–PA16）？CS / DC / RESET 分别接哪个 GPIO？
-- **OV2640**：是 FriendlyElec 的 24pin DVP 摄像头，还是自己接的模块？SCCB 是否接在 PE12/PE13（i2c2）？
+- **OV2640**：走板载 DVP-CAM 排线，`ov2640.dts` 已按标准接线写好
+  （PE0/PE2/PE3 + PE4–PE11 数据、PE12/PE13 = i2c2、PE1 = MCLK）。
+  如果画面异常，先把 `hsync-active` / `vsync-active` / `pclk-sample` 三个值翻转试试。
+- **ST7735**：不并入内核，`st7735r.dts` 只是参考模板；驱动已经编成模块，
+  引脚由使用者自己在 SPI 节点里定义，或用 `spidev` 自己控制。
 
-模板里的 `TODO` 就是这些位置。
+模板里的 `TODO` 就是需要按实际接线修改的位置。
