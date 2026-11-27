@@ -1,0 +1,48 @@
+// OV2640 DVP camera on the H3 CSI + i2c2 (template: verify the wiring)
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "allwinner,sun8i-h3";
+
+	fragment@0 {
+		target = <&i2c2>;
+		__overlay__ {
+			status = "okay";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			ov2640: camera@30 {
+				compatible = "ovti,ov2640";
+				reg = <0x30>;
+
+				port {
+					ov2640_ep: endpoint {
+						remote-endpoint = <&csi_ep>;
+						bus-width = <8>;
+						hsync-active = <1>;
+						vsync-active = <1>;
+						pclk-sample = <0>;
+					};
+				};
+			};
+		};
+	};
+
+	fragment@1 {
+		target = <&csi>;
+		__overlay__ {
+			status = "okay";
+
+			port {
+				csi_ep: endpoint {
+					remote-endpoint = <&ov2640_ep>;
+					bus-width = <8>;
+					hsync-active = <1>;
+					vsync-active = <1>;
+					pclk-sample = <0>;
+				};
+			};
+		};
+	};
+};

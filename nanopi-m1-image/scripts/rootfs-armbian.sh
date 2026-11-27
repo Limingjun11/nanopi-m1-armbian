@@ -87,7 +87,15 @@ cat >"$ROOTFS/etc/hosts" <<'EOF'
 127.0.1.1	nanopi-m1
 ::1		localhost ip6-localhost ip6-loopback
 EOF
-ln -sfn /run/systemd/resolve/stub-resolv.conf "$ROOTFS/etc/resolv.conf" 2>/dev/null || true
+# Armbian bullseye uses ifupdown/dhclient, not systemd-resolved: a symlink to
+# /run/systemd/resolve/stub-resolv.conf would dangle and break DNS until DHCP
+# rewrites the file. Ship a real file instead; dhclient replaces it on lease.
+rm -f "$ROOTFS/etc/resolv.conf"
+cat >"$ROOTFS/etc/resolv.conf" <<'EOF'
+nameserver 223.5.5.5
+nameserver 1.1.1.1
+nameserver 10.0.2.3
+EOF
 
 # Armbian first-boot wizard and the ramlog/zram helpers expect Armbian's own
 # boot environment (armbianEnv.txt, /var/log.hdd); they either fail or stall

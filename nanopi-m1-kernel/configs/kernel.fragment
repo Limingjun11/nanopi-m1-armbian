@@ -50,3 +50,13 @@ CONFIG_MAC80211=m
 CONFIG_USB_RTL8152=m
 CONFIG_RTL8XXXU=m
 CONFIG_MT7601U=m
+
+# --- small SPI TFT (fbtft) ---------------------------------------------------
+CONFIG_FB=y
+CONFIG_FB_DEVICE=y
+CONFIG_FB_TFT=m
+CONFIG_FB_TFT_ST7735R=m
+CONFIG_SPI_SPIDEV=m
+
+# --- OV2640 DVP camera -------------------------------------------------------
+CONFIG_VIDEO_OV2640=m
