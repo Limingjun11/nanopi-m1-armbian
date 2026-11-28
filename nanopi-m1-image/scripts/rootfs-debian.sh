@@ -112,7 +112,11 @@ EOF
 
 : >"$ROOTFS/etc/machine-id"
 chmod 0444 "$ROOTFS/etc/machine-id"
-ln -sfn /run/systemd/resolve/stub-resolv.conf "$ROOTFS/etc/resolv.conf"
+rm -f "$ROOTFS/etc/resolv.conf"
+cat >"$ROOTFS/etc/resolv.conf" <<'EOF'
+nameserver 223.5.5.5
+nameserver 1.1.1.1
+EOF
 
 # enable the services we want on a headless board
 enable_unit() { # $1 = unit, $2 = target.wants

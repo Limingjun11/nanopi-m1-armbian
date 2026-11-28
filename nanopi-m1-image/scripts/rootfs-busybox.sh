@@ -119,7 +119,7 @@ cat >"$ROOTFS/etc/hosts" <<'EOF'
 127.0.0.1	localhost
 127.0.1.1	nanopi-m1
 EOF
-echo 'nameserver 223.5.5.5' >"$ROOTFS/etc/resolv.conf"
+printf 'nameserver 223.5.5.5\nnameserver 1.1.1.1\n' >"$ROOTFS/etc/resolv.conf"
 cat >"$ROOTFS/etc/fstab" <<'EOF'
 /dev/mmcblk0p1	/	ext4	defaults,noatime	0 1
 EOF

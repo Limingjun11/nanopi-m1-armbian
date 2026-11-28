@@ -94,8 +94,12 @@ rm -f "$ROOTFS/etc/resolv.conf"
 cat >"$ROOTFS/etc/resolv.conf" <<'EOF'
 nameserver 223.5.5.5
 nameserver 1.1.1.1
-nameserver 10.0.2.3
 EOF
+
+# keep DHCP from replacing the hard-coded DNS on lease renewal
+install -d "$ROOTFS/etc/dhcp"
+printf '\nsupersede domain-name-servers 223.5.5.5, 1.1.1.1;\n' \
+	>>"$ROOTFS/etc/dhcp/dhclient.conf"
 
 # Armbian first-boot wizard and the ramlog/zram helpers expect Armbian's own
 # boot environment (armbianEnv.txt, /var/log.hdd); they either fail or stall
