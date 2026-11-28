@@ -87,7 +87,7 @@ default nanopi-m1
 label nanopi-m1
     kernel /boot/zImage
     devicetree /boot/sun8i-h3-nanopi-m1.dtb
-    append root=/dev/mmcblk0p1 rootwait rw console=ttyS0,115200 console=tty1
+    append root=/dev/mmcblk0p1 rootwait rw cma=64M console=ttyS0,115200 console=tty1
 EOF
 
 cat >"$ROOTFS/etc/fstab" <<'EOF'
