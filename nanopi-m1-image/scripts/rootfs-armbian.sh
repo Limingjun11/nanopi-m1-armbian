@@ -88,13 +88,22 @@ cat >"$ROOTFS/etc/hosts" <<'EOF'
 ::1		localhost ip6-localhost ip6-loopback
 EOF
 # Armbian bullseye uses ifupdown/dhclient, not systemd-resolved: a symlink to
-# /run/systemd/resolve/stub-resolv.conf would dangle and break DNS until DHCP
-# rewrites the file. Ship a real file instead; dhclient replaces it on lease.
+# /run/systemd/resolve/stub-resolv.conf would dangle and break DNS. Ship a real
+# file and pin the same servers in dhclient.conf so leases cannot overwrite it.
 rm -f "$ROOTFS/etc/resolv.conf"
 cat >"$ROOTFS/etc/resolv.conf" <<'EOF'
 nameserver 223.5.5.5
 nameserver 1.1.1.1
 EOF
+
+# Use USTC mirrors: the archived Armbian/Bullseye sources are dead or slow
+cat >"$ROOTFS/etc/apt/sources.list" <<'EOF'
+deb http://mirrors.ustc.edu.cn/debian bullseye main contrib non-free
+deb http://mirrors.ustc.edu.cn/debian-security bullseye-security main contrib non-free
+EOF
+if [ -f "$ROOTFS/etc/apt/sources.list.d/armbian.list" ]; then
+	sed -i 's/^deb/#deb/' "$ROOTFS/etc/apt/sources.list.d/armbian.list"
+fi
 
 # keep DHCP from replacing the hard-coded DNS on lease renewal
 install -d "$ROOTFS/etc/dhcp"
