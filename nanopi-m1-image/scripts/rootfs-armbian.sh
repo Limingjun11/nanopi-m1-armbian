@@ -97,9 +97,9 @@ nameserver 1.1.1.1
 EOF
 
 # Use USTC mirrors: the archived Armbian/Bullseye sources are dead or slow
+# bullseye is EOL (2026-08), the -security suite no longer exists on mirrors
 cat >"$ROOTFS/etc/apt/sources.list" <<'EOF'
 deb http://mirrors.ustc.edu.cn/debian bullseye main contrib non-free
-deb http://mirrors.ustc.edu.cn/debian-security bullseye-security main contrib non-free
 EOF
 if [ -f "$ROOTFS/etc/apt/sources.list.d/armbian.list" ]; then
 	sed -i 's/^deb/#deb/' "$ROOTFS/etc/apt/sources.list.d/armbian.list"
