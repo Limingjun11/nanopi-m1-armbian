@@ -61,3 +61,13 @@ CONFIG_SPI_SPIDEV=m
 
 # --- OV2640 DVP camera -------------------------------------------------------
 CONFIG_VIDEO_OV2640=m
+
+# --- framebuffer console -----------------------------------------------------
+# fbcon on the SPI TFT (bind with con2fbmap 1 1); rotation support for fbtft
+CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY=y
+CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y
+
+# --- introspection -----------------------------------------------------------
+# expose the running config as /proc/config.gz
+CONFIG_IKCONFIG=y
+CONFIG_IKCONFIG_PROC=y
